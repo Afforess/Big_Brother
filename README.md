@@ -1,11 +1,10 @@
-Repository for the Factorio Concrete Logistics mod.
+Repository for the Factorio Big Brother mod.
 
 Description
 ===========
 
 Mod compatibility
 =================
-Requires color-coding factorio mod.
 
 Contributing
 ============
