@@ -1,0 +1,9 @@
+{
+  "name": "Big_Brother",
+  "version": "{{VERSION}}",
+  "title": "Big Brother",
+  "author": "Afforess",
+  "homepage": "http://afforess.com",
+  "description": "Proudly building the perfect surveillance state",
+  "dependencies": ["base >= 0.12.31"]
+}
