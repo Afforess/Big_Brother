@@ -117,9 +117,9 @@ Event.register(defines.events.on_sector_scanned, function(event)
                     if math.abs(speed) > 0.05 then
                         chart_locomotive(entity, speed)
                     else
-                        for _, wagon in pairs(train.cargo_wagons) do
+                        table.each(train.cargo_wagons, function(wagon)
                             entity.force.chart(entity.surface, Position.expand_to_area(wagon.position, 1))
-                        end
+                        end)
                     end
                 else
                     entity.force.chart(entity.surface, Position.expand_to_area(entity.position, 1))
@@ -130,26 +130,13 @@ Event.register(defines.events.on_sector_scanned, function(event)
 end)
 
 function update_all_surveillance(force)
-    if global.vehicles then
-        for _, vehicle in pairs(global.vehicles) do
-            update_surveillance(vehicle, true)
-        end
-    end
-    if global.trains then
-        for _, train in pairs(global.trains) do
-            update_surveillance(train, true)
-        end
-    end
+    table.each(global.vehicles or {}, function(vehicle) update_surveillance(vehicle, true) end)
+    table.each(global.trains or {}, function(train) update_surveillance(train, true) end)
+
     if global.power_poles and force.technologies['surveillance-2'].researched then
-        local power_poles = global.power_poles
-        for i = #power_poles, 1, -1 do
-            local entity = power_poles[i]
-            if entity.valid then
-                update_surveillance(entity, false)
-            else
-                table.remove(power_poles, i)
-            end
-        end
+        global.power_poles = table.each(table.filter(global.power_poles, Game.VALID_FILTER), function(entity)
+            update_surveillance(entity, false)
+        end)
     end
 end
 
@@ -235,12 +222,7 @@ end
 
 function remove_surveillance(entity, follow)
     if follow then
-        if not global.following then return end
-        for i = #global.following, 1, -1 do
-            if global.following[i] == entity then
-                table.remove(global.following, i)
-            end
-        end
+        global.following = table.filter(global.following or {}, function(followed) return followed ~= entity end)
     else
         local data = Entity.get_data(entity)
         if data and data.surveillance and data.surveillance.valid then
