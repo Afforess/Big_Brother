@@ -8,8 +8,6 @@ require 'stdlib/area/position'
 require 'stdlib/entity/entity'
 
 LOGGER = Logger.new('Big_Brother', 'main', true)
-MAX_SURVEILLANCE_DISTANCE = 25000
-MAX_SURVEILLANCE_DISTANCE_SQUARED = MAX_SURVEILLANCE_DISTANCE * MAX_SURVEILLANCE_DISTANCE
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
     local entity = event.created_entity
@@ -31,16 +29,28 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     elseif entity.name == 'big_brother-surveillance-center' then
         entity.backer_name = ''
         track_entity('surveillance_centers', entity)
-        if global.vehicles then
-            for _, vehicle in pairs(global.vehicles) do
-                update_surveillance(vehicle, true)
-            end
+        update_all_surveillance(entity.force)
+    end
+end)
+
+Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined, defines.events.on_preplayer_mined_item}, function(event)
+    local entity = event.entity
+    local name = entity.name
+    if name == 'big-electric-pole' then
+        if entity.force.technologies['surveillance-2'].researched then
+            remove_surveillance(entity, false)
         end
-        if global.trains then
-            for _, train in pairs(global.trains) do
-                update_surveillance(train, true)
-            end
-        end
+    elseif entity.type == 'car' then
+        remove_surveillance(entity, true)
+    elseif entity.type == 'locomotive' then
+        remove_surveillance(entity, true)
+    elseif entity.name == 'big_brother-surveillance-center' then
+        local force = entity.force
+        Event.register(defines.events.on_tick, function(event)
+            update_all_surveillance(force)
+
+            Event.remove(defines.events.on_tick, event._handler)
+        end)
     end
 end)
 
@@ -53,31 +63,22 @@ Event.register(defines.events.on_tick, function(event)
             Event.remove(defines.events.on_tick, event._handler)
             -- track all radars
             local radars = Surface.find_all_entities({name = 'radar'})
-            for i = 1, #radars do
-                track_entity('radars', radars[i])
-            end
-            for _, force in pairs(game.forces) do
-                upgrade_radars(force)
-            end
+            table.each(radars, function(entity) track_entity('radars', entity) end)
+
+            -- upgrade radars
+            table.each(game.forces, upgrade_radars)
 
             -- track all vehicles
             local vehicles = Surface.find_all_entities({type = 'car'})
-            for i = 1, #vehicles do
-                track_entity('vehicles', vehicles[i])
-            end
+            table.each(vehicles, function(entity) track_entity('vehicles', entity) end)
 
             -- track all trains
             local trains = Surface.find_all_entities({type = 'locomotive'})
-            LOGGER.log("Locomotives found: " .. #trains)
-            for i = 1, #trains do
-                track_entity('trains', trains[i])
-            end
+            table.each(trains, function(entity) track_entity('trains', entity) end)
 
             -- track all big-electric-poles
             local power_poles = Surface.find_all_entities({name = 'big-electric-pole'})
-            for i = 1, #power_poles do
-                track_entity('power_poles', power_poles[i])
-            end
+            table.each(power_poles, function(entity) track_entity('power_poles', entity) end)
 
             global.map_scan_countdown = nil
             global.scanned_map = true
@@ -97,15 +98,7 @@ Event.register(defines.events.on_research_finished, function(event)
         end)
     elseif tech_name == 'surveillance-2' then
         if global.power_poles and global.surveillance_centers then
-            local power_poles = global.power_poles
-            for i = #power_poles, 1, -1 do
-                local entity = power_poles[i]
-                if entity.valid then
-                    update_surveillance(entity, false)
-                else
-                    table.remove(power_poles, i)
-                end
-            end
+            update_all_surveillance(event.research.force)
         end
     end
 end)
@@ -129,12 +122,36 @@ Event.register(defines.events.on_sector_scanned, function(event)
                         end
                     end
                 else
-                    entity.force.chart(entity.surface, Position.expand_to_area(pos, 1))
+                    entity.force.chart(entity.surface, Position.expand_to_area(entity.position, 1))
                 end
             end
         end
     end
 end)
+
+function update_all_surveillance(force)
+    if global.vehicles then
+        for _, vehicle in pairs(global.vehicles) do
+            update_surveillance(vehicle, true)
+        end
+    end
+    if global.trains then
+        for _, train in pairs(global.trains) do
+            update_surveillance(train, true)
+        end
+    end
+    if global.power_poles and force.technologies['surveillance-2'].researched then
+        local power_poles = global.power_poles
+        for i = #power_poles, 1, -1 do
+            local entity = power_poles[i]
+            if entity.valid then
+                update_surveillance(entity, false)
+            else
+                table.remove(power_poles, i)
+            end
+        end
+    end
+end
 
 function chart_locomotive(entity, speed)
     local pos = entity.position
@@ -212,20 +229,23 @@ function update_surveillance(entity, follow)
             end
         end
     else
-        if follow then
-            if not global.following then return end
-            for i = #global.following, 1, -1 do
-                local data = global.following[i]
-                if data.entity == entity then
-                    table.remove(global.following, i)
-                end
+        remove_surveillance(entity, follow)
+    end
+end
+
+function remove_surveillance(entity, follow)
+    if follow then
+        if not global.following then return end
+        for i = #global.following, 1, -1 do
+            if global.following[i] == entity then
+                table.remove(global.following, i)
             end
-        else
-            local data = Entity.get_data(entity)
-            if data and data.surveillance and data.surveillance.valid then
-                data.surveillance.destroy()
-                Entity.set_data(entity, nil)
-            end
+        end
+    else
+        local data = Entity.get_data(entity)
+        if data and data.surveillance and data.surveillance.valid then
+            data.surveillance.destroy()
+            Entity.set_data(entity, nil)
         end
     end
 end
@@ -239,10 +259,7 @@ function get_nearest_surveillance_center(position, surface, force)
         table.sort(list, function(a, b)
             return Position.distance_squared(a.position, position) < Position.distance_squared(b.position, position)
         end)
-        local nearest = table.first(list)
-        if nearest and Position.distance_squared(nearest.position, position) < MAX_SURVEILLANCE_DISTANCE_SQUARED then
-            return nearest
-        end
+        return table.first(list)
     end
 end
 
