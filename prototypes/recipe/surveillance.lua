@@ -3,6 +3,7 @@ data:extend(
     {
         type = "recipe",
         name = "big_brother-surveillance-center",
+        enabled = false,
         ingredients =
         {
             {"radar", 5},
