@@ -106,36 +106,35 @@ end)
 Event.register(defines.events.on_sector_scanned, function(event)
     if not global.following then return end
     if event.radar.name == 'big_brother-surveillance-center' then
-        for i = #global.following, 1, -1 do
-            local entity = global.following[i]
-            if not entity.valid then
-                table.remove(global.following, i)
+        global.following = table.each(table.filter(global.following, Game.VALID_FILTER), function(entity)
+            if entity.type == 'locomotive' then
+                chart_train(entity)
             else
-                if entity.type == 'locomotive' then
-                    local train = entity.train
-                    local speed = train.speed
-                    if math.abs(speed) > 0.05 then
-                        chart_locomotive(entity, speed)
-                    else
-                        table.each(train.cargo_wagons, function(wagon)
-                            entity.force.chart(entity.surface, Position.expand_to_area(wagon.position, 1))
-                        end)
-                    end
-                else
-                    entity.force.chart(entity.surface, Position.expand_to_area(entity.position, 1))
-                end
+                entity.force.chart(entity.surface, Position.expand_to_area(entity.position, 1))
             end
-        end
+        end)
     end
 end)
 
 function update_all_surveillance(force)
-    table.each(global.vehicles or {}, function(vehicle) update_surveillance(vehicle, true) end)
-    table.each(global.trains or {}, function(train) update_surveillance(train, true) end)
+    table.each(table.filter(global.vehicles or {}, Game.VALID_FILTER), function(vehicle) update_surveillance(vehicle, true) end)
+    table.each(table.filter(global.trains or {}, Game.VALID_FILTER), function(train) update_surveillance(train, true) end)
 
     if global.power_poles and force.technologies['surveillance-2'].researched then
         global.power_poles = table.each(table.filter(global.power_poles, Game.VALID_FILTER), function(entity)
             update_surveillance(entity, false)
+        end)
+    end
+end
+
+function chart_train(entity)
+    local train = entity.train
+    local speed = train.speed
+    if math.abs(speed) > 0.05 then
+        chart_locomotive(entity, speed)
+    else
+        table.each(train.cargo_wagons, function(wagon)
+            entity.force.chart(entity.surface, Position.expand_to_area(wagon.position, 1))
         end)
     end
 end
