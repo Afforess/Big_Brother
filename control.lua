@@ -88,17 +88,19 @@ end)
 
 Event.register(defines.events.on_research_finished, function(event)
     local tech_name = event.research.name
+    local force = event.research.force
     if tech_name:starts_with('radar-amplifier') or tech_name:starts_with('radar-efficiency') then
         -- update radars in 1 tick
-        local force = event.research.force
         Event.register(defines.events.on_tick, function(event)
             upgrade_radars(force)
-
             Event.remove(defines.events.on_tick, event._handler)
         end)
     elseif tech_name == 'surveillance-2' then
         if global.power_poles and global.surveillance_centers then
-            update_all_surveillance(event.research.force)
+            Event.register(defines.events.on_tick, function(event)
+                update_all_surveillance(force)
+                Event.remove(defines.events.on_tick, event._handler)
+            end)
         end
     end
 end)
