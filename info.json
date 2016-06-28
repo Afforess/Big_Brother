@@ -4,6 +4,7 @@
   "title": "Big Brother",
   "author": "Afforess",
   "homepage": "http://afforess.com",
-  "description": "Proudly building the perfect surveillance state",
-  "dependencies": ["base >= 0.12.31"]
+  "description": "Big Brother - Research radar upgrades in amplification, efficiency, and surveillance capabilities. Create the ultimate surveillance state.",
+  "factorio_version": "0.13",
+  "dependencies": []
 }

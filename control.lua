@@ -1,4 +1,3 @@
-require 'defines'
 require 'stdlib/string'
 require 'stdlib/surface'
 require 'stdlib/table'
@@ -7,7 +6,7 @@ require 'stdlib/log/logger'
 require 'stdlib/area/position'
 require 'stdlib/entity/entity'
 
-LOGGER = Logger.new('Big_Brother', 'main', true)
+LOGGER = Logger.new('Big_Brother', 'main', false)
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
     local entity = event.created_entity
