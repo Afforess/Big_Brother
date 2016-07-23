@@ -56,29 +56,30 @@ end)
 -- Scan the map once if the mod has never been loaded (then deregister on_tick)
 Event.register(defines.events.on_tick, function(event)
     if not global.scanned_map then
-        if not global.map_scan_countdown then global.map_scan_countdown = 120 end
+        if not global.map_scan_countdown then global.map_scan_countdown = 10 end
         global.map_scan_countdown = global.map_scan_countdown - 1
         if global.map_scan_countdown <= 0 then
             Event.remove(defines.events.on_tick, event._handler)
-            -- track all radars
-            local radars = Surface.find_all_entities({name = 'radar'})
-            table.each(radars, function(entity) track_entity('radars', entity) end)
+            table.each(game.surfaces, function(surface)
+                -- track all radars
+                local radars = surface.find_entities_filtered({name = 'radar'})
+                table.each(radars, function(entity) track_entity('radars', entity) end)
 
-            -- upgrade radars
-            table.each(game.forces, upgrade_radars)
+                -- upgrade radars
+                table.each(game.forces, upgrade_radars)
 
-            -- track all vehicles
-            local vehicles = Surface.find_all_entities({type = 'car'})
-            table.each(vehicles, function(entity) track_entity('vehicles', entity) end)
+                -- track all vehicles
+                local vehicles = surface.find_entities_filtered({type = 'car'})
+                table.each(vehicles, function(entity) track_entity('vehicles', entity) end)
 
-            -- track all trains
-            local trains = Surface.find_all_entities({type = 'locomotive'})
-            table.each(trains, function(entity) track_entity('trains', entity) end)
+                -- track all trains
+                local trains = surface.find_entities_filtered({type = 'locomotive'})
+                table.each(trains, function(entity) track_entity('trains', entity) end)
 
-            -- track all big-electric-poles
-            local power_poles = Surface.find_all_entities({name = 'big-electric-pole'})
-            table.each(power_poles, function(entity) track_entity('power_poles', entity) end)
-
+                -- track all big-electric-poles
+                local power_poles = surface.find_entities_filtered({name = 'big-electric-pole'})
+                table.each(power_poles, function(entity) track_entity('power_poles', entity) end)
+            end)
             global.map_scan_countdown = nil
             global.scanned_map = true
         end
@@ -90,10 +91,18 @@ Event.register(defines.events.on_research_finished, function(event)
     local force = event.research.force
     if tech_name:starts_with('radar-amplifier') or tech_name:starts_with('radar-efficiency') then
         -- update radars in 1 tick
-        Event.register(defines.events.on_tick, function(event)
-            upgrade_radars(force)
-            Event.remove(defines.events.on_tick, event._handler)
-        end)
+        if not global.queued_updates then
+            global.queued_updates = {}
+        end
+        -- attempt to avoid upgrading radars more than once when a player decides to research all techs at once
+        if not global.queued_updates[force.name] or global.queued_updates[force.name] ~= event.tick then
+            global.queued_updates[force.name] = event.tick
+            Event.register(defines.events.on_tick, function(event)
+                upgrade_radars(force)
+                global.queued_updates[force.name] = nil
+                Event.remove(defines.events.on_tick, event._handler)
+            end)
+        end
     elseif tech_name == 'surveillance-2' then
         if global.power_poles and global.surveillance_centers then
             Event.register(defines.events.on_tick, function(event)
@@ -134,8 +143,9 @@ function chart_train(entity)
     if math.abs(speed) > 0.05 then
         chart_locomotive(entity, speed)
     else
+        local surface = entity.surface
         table.each(train.cargo_wagons, function(wagon)
-            entity.force.chart(entity.surface, Position.expand_to_area(wagon.position, 1))
+            entity.force.chart(surface, Position.expand_to_area(wagon.position, 1))
         end)
     end
 end
