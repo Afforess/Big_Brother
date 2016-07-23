@@ -13,7 +13,7 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     local name = entity.name
     if name == 'radar' then
         track_entity('radars', entity)
-        upgrade_radars(entity.force)
+        upgrade_radar_entity(entity)
     elseif name == 'big-electric-pole' then
         track_entity('power_poles', entity)
         if entity.force.technologies['surveillance-2'].researched then
@@ -165,6 +165,24 @@ function chart_locomotive(entity, speed)
         area[2].y = y
     end
     entity.force.chart(entity.surface, area)
+end
+
+function upgrade_radar_entity(radar)
+    if not radar.valid then return nil end
+
+    local force = radar.force
+    local radar_efficiency_level = calculate_tech_level(force, 'radar-efficiency', 9)
+    local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
+    local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
+    local pos = radar.position
+    local direction = radar.direction
+    local health = radar.health
+    local surface = radar.surface
+    LOGGER.log("Upgrading radar {" .. radar.name .. "} at " .. serpent.line(pos, {comment=false}))
+    radar.destroy()
+    local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
+    new_radar.health = health
+    return new_radar
 end
 
 function upgrade_radars(force)
