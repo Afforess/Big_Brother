@@ -12,8 +12,7 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     local entity = event.created_entity
     local name = entity.name
     if name == 'radar' then
-        track_entity('radars', entity)
-        upgrade_radar_entity(entity)
+        track_entity('radars', upgrade_radar_entity(entity))
     elseif name == 'big-electric-pole' then
         track_entity('power_poles', entity)
         if entity.force.technologies['surveillance-2'].researched then
@@ -274,6 +273,8 @@ function get_nearest_surveillance_center(position, surface, force)
 end
 
 function track_entity(category, entity)
+    if not entity then return end
+    
     if not global[category] then global[category] = {} end
     local entity_list = global[category]
     for i = #entity_list, 1, -1 do
