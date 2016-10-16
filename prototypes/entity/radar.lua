@@ -16,6 +16,7 @@ for radar_amplification_type = 0, 9 do
         radar.energy_per_sector = energy_per_sector .. "KJ"
         radar.energy_usage = (300 + extra_energy_cost) .. "kW"
         radar.order ="d-c"
+        radar.localised_name = {"entity-name.radar"}
 
         local file_names = {}
         for i = 1, 64 do
@@ -28,7 +29,7 @@ for radar_amplification_type = 0, 9 do
             height = 262,
             line_length = 1,
             lines_per_file = 1,
-            priority = "low",
+            priority = "medium",
             scale = 0.5,
             shift = {0.875, -0.34375},
             width = 306,
@@ -38,3 +39,18 @@ for radar_amplification_type = 0, 9 do
 end
 
 data:extend(radars)
+
+-- dummy item for blueprints
+local radar = table.deepcopy(data.raw['radar']['radar'])
+radar.name = 'big_brother-blueprint-radar'
+radar.max_distance_of_sector_revealed = 0
+radar.max_distance_of_nearby_sector_revealed = 0
+radar.energy_per_sector = "0KJ"
+radar.energy_usage = "0kW"
+radar.order ="d-c"
+radar.localised_name = {"entity-name.radar"}
+radar.pictures.priority = "low"
+radar.pictures.height = 0
+radar.pictures.width = 0
+
+data:extend({radar})

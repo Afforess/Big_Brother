@@ -6,7 +6,7 @@ require 'stdlib/log/logger'
 require 'stdlib/area/position'
 require 'stdlib/entity/entity'
 
-LOGGER = Logger.new('Big_Brother', 'main', false)
+LOGGER = Logger.new('Big_Brother', 'main', true)
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
     local entity = event.created_entity
@@ -28,6 +28,11 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
         entity.backer_name = ''
         track_entity('surveillance_centers', entity)
         update_all_surveillance(entity.force)
+    elseif entity.type == 'entity-ghost' then
+        if entity.ghost_name == 'big_brother-blueprint-radar' then
+            entity.surface.create_entity({name = entity.name, position = entity.position, force = entity.force, inner_name = 'radar'})
+            entity.destroy()
+        end
     end
 end)
 
@@ -49,6 +54,12 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
 
             Event.remove(defines.events.on_tick, event._handler)
         end)
+    elseif entity.type == 'radar' then
+        local radar_data = Entity.set_data(entity, nil)
+        LOGGER.log("Removing radar blueprint data for {" .. entity.name .. ", unit_number: " .. entity.unit_number .. "}: " .. serpent.line(radar_data, {comment=false}))
+        if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
+            radar_data.blueprint_radar.destroy()
+        end
     end
 end)
 
@@ -59,13 +70,14 @@ Event.register(defines.events.on_tick, function(event)
         global.map_scan_countdown = global.map_scan_countdown - 1
         if global.map_scan_countdown <= 0 then
             Event.remove(defines.events.on_tick, event._handler)
+
+            -- upgrade radars
+            table.each(game.forces, upgrade_radars)
+
             table.each(game.surfaces, function(surface)
                 -- track all radars
                 local radars = surface.find_entities_filtered({name = 'radar'})
                 table.each(radars, function(entity) track_entity('radars', entity) end)
-
-                -- upgrade radars
-                table.each(game.forces, upgrade_radars)
 
                 -- track all vehicles
                 local vehicles = surface.find_entities_filtered({type = 'car'})
@@ -81,6 +93,22 @@ Event.register(defines.events.on_tick, function(event)
             end)
             global.map_scan_countdown = nil
             global.scanned_map = true
+        end
+    end
+end)
+
+-- Scan the map once if the mod never had blueprint radars added
+Event.register(defines.events.on_tick, function(event)
+    if not global.scanned_map_for_blueprints then
+        if not global.map_scan_blueprint_countdown then global.map_scan_blueprint_countdown = 20 end
+        global.map_scan_blueprint_countdown = global.map_scan_blueprint_countdown - 1
+        if global.map_scan_blueprint_countdown <= 0 then
+            Event.remove(defines.events.on_tick, event._handler)
+            -- upgrade radars
+            table.each(game.forces, upgrade_radars)
+
+            global.map_scan_blueprint_countdown = nil
+            global.scanned_map_for_blueprints = true
         end
     end
 end)
@@ -104,10 +132,8 @@ Event.register(defines.events.on_research_finished, function(event)
         end
     elseif tech_name == 'surveillance-2' then
         if global.power_poles and global.surveillance_centers then
-            Event.register(defines.events.on_tick, function(event)
-                update_all_surveillance(force)
-                Event.remove(defines.events.on_tick, event._handler)
-            end)
+            --force.technologies['surveillance-2'].researched = true
+            update_all_surveillance(force)
         end
     end
 end)
@@ -140,7 +166,7 @@ function chart_train(entity)
     local train = entity.train
     local speed = train.speed
     if math.abs(speed) > 0.05 then
-        chart_locomotive(entity, speed)
+        chart_locomotive(entity)
     else
         local surface = entity.surface
         table.each(train.cargo_wagons, function(wagon)
@@ -149,21 +175,12 @@ function chart_train(entity)
     end
 end
 
-function chart_locomotive(entity, speed)
+function chart_locomotive(entity)
     local pos = entity.position
 
     local x = pos.x + 16 * math.sin(2 * math.pi * entity.orientation)
     local y = pos.y - 16 * math.cos(2 * math.pi * entity.orientation)
-    local area = {{x = x, y = y}, pos}
-    if pos.x < x then
-        area[1].x = pos.x
-        area[2].x = x
-    end
-    if pos.y < y then
-        area[1].y = pos.y
-        area[2].y = y
-    end
-    entity.force.chart(entity.surface, area)
+    entity.force.chart(entity.surface, Area.normalize({Position.construct(x, y), pos}))
 end
 
 function upgrade_radar_entity(radar)
@@ -177,10 +194,21 @@ function upgrade_radar_entity(radar)
     local direction = radar.direction
     local health = radar.health
     local surface = radar.surface
+    local radar_data = Entity.set_data(radar, nil)
     LOGGER.log("Upgrading radar {" .. radar.name .. "} at " .. serpent.line(pos, {comment=false}))
     radar.destroy()
+
+    if not radar_data then
+        local blueprint_radar = surface.create_entity({ name = 'big_brother-blueprint-radar', position = pos, direction = direction, force = force})
+        Entity.set_frozen(blueprint_radar)
+        Entity.set_indestructible(blueprint_radar)
+        radar_data = { blueprint_radar = blueprint_radar }
+    end
     local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
     new_radar.health = health
+    LOGGER.log("Setting blueprint data on radar {" .. new_radar.name .. ", unit_number: " .. new_radar.unit_number .. "}: " .. serpent.line(radar_data, {comment=false}))
+    Entity.set_data(new_radar, radar_data)
+
     return new_radar
 end
 
@@ -200,12 +228,19 @@ function upgrade_radars(force)
             local direction = radar.direction
             local health = radar.health
             local surface = radar.surface
-
+            local radar_data = Entity.set_data(radar, nil)
             LOGGER.log("Upgrading radar {" .. radar.name .. "} at " .. serpent.line(pos, {comment=false}))
-
             radar.destroy()
+
+            if not radar_data then
+                local blueprint_radar = surface.create_entity({ name = 'big_brother-blueprint-radar', position = pos, direction = direction, force = force})
+                Entity.set_frozen(blueprint_radar)
+                Entity.set_indestructible(blueprint_radar)
+                radar_data = { blueprint_radar = blueprint_radar }
+            end
             local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
             new_radar.health = health
+            Entity.set_data(new_radar, radar_data)
 
             global.radars[i] = new_radar
         end
@@ -233,11 +268,8 @@ function update_surveillance(entity, follow)
         if not data then
             if not follow then
                 local surveillance = entity.surface.create_entity({name = 'big_brother-surveillance-small', position = entity.position, force = entity.force})
-                surveillance.destructible = false
-                surveillance.operable = false
-                surveillance.minable = false
-                data = { surveillance = surveillance }
-                Entity.set_data(entity, data)
+                Entity.set_indestructible(surveillance)
+                Entity.set_data(entity, { surveillance = surveillance })
             else
                 track_entity('following', entity)
             end
@@ -270,11 +302,12 @@ function get_nearest_surveillance_center(position, surface, force)
         end)
         return table.first(list)
     end
+    return nil
 end
 
 function track_entity(category, entity)
     if not entity then return end
-    
+
     if not global[category] then global[category] = {} end
     local entity_list = global[category]
     for i = #entity_list, 1, -1 do

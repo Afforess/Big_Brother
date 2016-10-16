@@ -78,7 +78,9 @@ function Entity.set_data(entity, data)
 
     local unit_number = entity.unit_number
     if unit_number then
+        local prev = global._entity_data[unit_number]
          global._entity_data[unit_number] = data
+         return prev
     else
         local entity_name = entity.name
         if not global._entity_data[entity_name] then
@@ -117,6 +119,18 @@ function Entity.set_frozen(entity, mode)
     entity.active    = mode
     entity.operable  = mode
     entity.rotatable = mode
+    return entity
+end
+
+--- Makes an entity indestructible, so that it can not be damaged or mined by the player or enemy factions
+-- @param entity the entity to set indestructible
+-- @param mode (optional) if true, makes the entity indestructible, if false, makes the entity destructable. If not specified, is true.
+-- @return entity passed into it
+function Entity.set_indestructible(entity, mode)
+    fail_if_missing(entity, "missing entity argument")
+    mode = mode == false and true or false
+    entity.minable       = mode
+    entity.destructible  = mode
     return entity
 end
 
