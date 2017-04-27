@@ -5,6 +5,6 @@
   "author": "Afforess",
   "homepage": "http://afforess.com",
   "description": "Big Brother - Research radar upgrades in amplification, efficiency, and surveillance capabilities. Create the ultimate surveillance state.",
-  "factorio_version": "0.14",
-  "dependencies": ["base >= 0.14.0"]
+  "factorio_version": "0.15",
+  "dependencies": ["base >= 0.15.0"]
 }

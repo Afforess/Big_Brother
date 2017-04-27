@@ -121,7 +121,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 1},
             },
             time = 45
         },
@@ -141,7 +141,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 1},
             },
             time = 50
         },
@@ -161,7 +161,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 2},
             },
             time = 60
         },
@@ -290,7 +290,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 1},
             },
             time = 50
         },
@@ -310,7 +310,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 1},
             },
             time = 60
         },
@@ -330,7 +330,7 @@ data:extend(
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
                 {"science-pack-3", 1},
-                {"alien-science-pack", 2},
+                {"high-tech-science-pack", 2},
             },
             time = 70
         },
@@ -375,6 +375,7 @@ data:extend(
                 {"science-pack-1", 2},
                 {"science-pack-2", 1},
                 {"science-pack-3", 1},
+                {"high-tech-science-pack", 1}
             },
             time = 75
         },
