@@ -12,9 +12,7 @@ require 'stdlib/event/event'
 require 'stdlib/surface'
 require 'stdlib/table'
 
-Trains = {
-    _registry = {}
-}
+Trains = {}
 
 --- This event is fired when a train's id has changed.
 -- <p>Train id's are dervied from a property of the train's main locomotive.
@@ -68,19 +66,10 @@ end
 ----Trains.find_filtered({ surface_name = "nauvis", state = defines.train_state.wait_station })
 -- @tparam Table criteria Table with any keys supported by the <a href="Surface.html#find_all_entities">Surface</a> module.</p>
 --  <p>If the name key isn't supplied, this will default to 'diesel-locomotive'</p>
---  <p>If the surface key isn't supplied, this will default to 1</p>
--- @return A list of train details tables, if any are found matching the criteria. Otherwise the empty list.
--- <p>
---  <table>
---      <tr><td>train (LuaTrain)</td><td>The LuaTrain instance</td></tr>
---      <tr><td>id (int)</td><td>The id of the train</td></tr>
---  </table>
--- </p>
+--  <p>If the surface key isn't supplied, this will search all surfaces that currently exist</p>
+-- @return A list of train details tables, if any are found matching the criteria. Otherwise the empty list. <table><tr><td>train (LuaTrain)</td><td>The LuaTrain instance</td></tr><tr><td>id (int)</td><td>The id of the train</td></tr></table>
 function Trains.find_filtered(criteria)
     criteria = criteria or {}
-
-    -- Ensuure surface is set
-    criteria.surface =  criteria.surface or 'nauvis'
 
     -- Make sure 'locomotive' is specified as the type by default
     criteria.type = criteria.type or 'locomotive'
@@ -91,15 +80,14 @@ function Trains.find_filtered(criteria)
     -- Distinguish trains
     local train_data = find_distinct_trains(locomotives)
 
-    --- Apply filters
-    -- State
-    if not (criteria.state == nil) then
+    --- Apply state filters
+    if criteria.state then
         train_data = table.filter(train_data, function(data)
             return data.train.state == criteria.state
         end)
     end
 
-    return train_data;
+    return train_data
 end
 
 --- Find the id of a LuaTrain instance
@@ -115,7 +103,7 @@ end
 function Trains._on_locomotive_changed()
     -- For all the known trains
     local renames = {}
-    for id, train in pairs(Trains._registry) do
+    for id, train in pairs(global._train_registry) do
         -- Check if their known ID is the same as the LuaTrain's dervied id
         local derived_id = Trains.get_train_id(train)
         -- If it's not
@@ -129,14 +117,15 @@ function Trains._on_locomotive_changed()
     for _, renaming in pairs(renames) do
         -- Rename it in the registry
         -- and dispatch a renamed event
-        Trains._registry[renaming.new_id] = renaming.train
-        table.remove_keys(Trains._registry, {renaming.old_id})
+        global._train_registry[renaming.new_id] = renaming.train
+        table.remove_keys(global._train_registry, {renaming.old_id})
 
         local event_data = {
             old_id = renaming.old_id,
-            new_id = renaming.new_id
+            new_id = renaming.new_id,
+            name = Trains.on_train_id_changed
         }
-        Event.dispatch(Trains.on_train_id_changed, event_data)
+        Event.dispatch(event_data)
     end
 end
 --- Event fired when a new locomotive has been created
@@ -144,8 +133,8 @@ end
 -- @return void
 function Trains._on_locomotive_created(new_locomotive)
     local train_id = Trains.get_train_id(new_locomotive.train)
-    if (Trains._registry[train_id] == nil) then
-        Trains._registry[train_id] = new_locomotive.train
+    if (global._train_registry[train_id] == nil) then
+        global._train_registry[train_id] = new_locomotive.train
     end
 end
 
@@ -197,7 +186,7 @@ end
 local function create_train_registry()
     local registry = {}
 
-    local all_trains = Trains.find_filtered({surface_name = 1})
+    local all_trains = Trains.find_filtered()
     for _, trainInfo in pairs(all_trains) do
         registry[tonumber(trainInfo.id)] = trainInfo.train
     end
@@ -215,23 +204,23 @@ end
 -- @tparam callable callback The callback to invoke if the filter passes. The object defined in the event parameter is passed.
 local function filter_event(event_parameter, entity_type, callback)
     return function(evt)
-        if(evt[event_parameter].name == entity_type) then
+        if(evt[event_parameter].type == entity_type) then
             callback(evt[event_parameter])
         end
     end
 end
 
 -- When a locomotive is removed ..
-Event.register(defines.events.on_entity_died, filter_event('entity', 'diesel-locomotive', Trains._on_locomotive_changed))
-Event.register(defines.events.on_picked_up_item, filter_event('item_stack', 'diesel-locomotive', Trains._on_locomotive_changed))
-Event.register(defines.events.on_player_mined_item, filter_event('item_stack', 'diesel-locomotive', Trains._on_locomotive_changed))
-Event.register(defines.events.on_robot_mined, filter_event('item_stack', 'diesel-locomotive', Trains._on_locomotive_changed))
+Event.register(defines.events.on_entity_died, filter_event('entity', 'locomotive', Trains._on_locomotive_changed))
+Event.register(defines.events.on_picked_up_item, filter_event('item_stack', 'locomotive', Trains._on_locomotive_changed))
+Event.register(defines.events.on_player_mined_item, filter_event('item_stack', 'locomotive', Trains._on_locomotive_changed))
+Event.register(defines.events.on_robot_mined, filter_event('item_stack', 'locomotive', Trains._on_locomotive_changed))
 
 -- When a locomotive is added ..
-Event.register(defines.events.on_built_entity, filter_event('created_entity', 'diesel-locomotive', Trains._on_locomotive_created))
-Event.register(defines.events.on_robot_built_entity, filter_event('created_entity', 'diesel-locomotive', Trains._on_locomotive_created))
+Event.register(defines.events.on_built_entity, filter_event('created_entity', 'locomotive', Trains._on_locomotive_created))
+Event.register(defines.events.on_robot_built_entity, filter_event('created_entity', 'locomotive', Trains._on_locomotive_created))
 
--- Then call some of our own code to initialize ourselves
-Trains._registry = create_train_registry()
+-- When the mod is initialized the first time
+Event.register(Event.core_events.init, function() global._train_registry = create_train_registry() end)
 
 return Trains
