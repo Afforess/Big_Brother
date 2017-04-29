@@ -76,7 +76,7 @@ data:extend(
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
         icon_size = 128,
         effects = { },
-        prerequisites = {"effect-transmission", "radar-amplifier-4"},
+        prerequisites = {"radar-amplifier-4"},
         unit = {
             count = 125,
             ingredients = {
@@ -114,7 +114,7 @@ data:extend(
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
         icon_size = 128,
         effects = { },
-        prerequisites = {"productivity-module-3", "radar-amplifier-6"},
+        prerequisites = {"effect-transmission", "radar-amplifier-6"},
         unit = {
             count = 100,
             ingredients = {
@@ -134,7 +134,7 @@ data:extend(
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
         icon_size = 128,
         effects = { },
-        prerequisites = {"radar-amplifier-7"},
+        prerequisites = {"productivity-module-3", "radar-amplifier-7"},
         unit = {
             count = 130,
             ingredients = {
