@@ -2,11 +2,9 @@ require 'stdlib/string'
 require 'stdlib/surface'
 require 'stdlib/table'
 require 'stdlib/event/event'
-require 'stdlib/log/logger'
 require 'stdlib/area/position'
 require 'stdlib/entity/entity'
-
-LOGGER = Logger.new('Big_Brother', 'main', true)
+require 'scheduler'
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
     local entity = event.created_entity
@@ -49,90 +47,51 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
         remove_surveillance(entity, true)
     elseif entity.name == 'big_brother-surveillance-center' then
         local force = entity.force
-        Event.register(defines.events.on_tick, function(event)
+        Scheduler.add(nil, function(event)
             update_all_surveillance(force)
-
-            Event.remove(defines.events.on_tick, event._handler)
         end)
     elseif entity.type == 'radar' then
         local radar_data = Entity.set_data(entity, nil)
-        LOGGER.log("Removing radar blueprint data for {" .. entity.name .. ", unit_number: " .. entity.unit_number .. "}: " .. serpent.line(radar_data, {comment=false}))
         if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
             radar_data.blueprint_radar.destroy()
         end
     end
 end)
 
--- Scan the map once if the mod has never been loaded (then deregister on_tick)
-Event.register(defines.events.on_tick, function(event)
-    if not global.scanned_map then
-        if not global.map_scan_countdown then global.map_scan_countdown = 10 end
-        global.map_scan_countdown = global.map_scan_countdown - 1
-        if global.map_scan_countdown <= 0 then
-            Event.remove(defines.events.on_tick, event._handler)
+-- Scan the map once if the mod is updated
+Event.register({Event.core_events.init, Event.core_events.configuration_changed}, function(event)
+    -- start tracking all important entities
+    table.each(game.surfaces, function(surface)
+        -- track all radars
+        local radars = surface.find_entities_filtered({name = 'radar'})
+        table.each(radars, function(entity) track_entity('radars', entity) end)
 
-            -- upgrade radars
-            table.each(game.forces, upgrade_radars)
+        -- track all vehicles
+        local vehicles = surface.find_entities_filtered({type = 'car'})
+        table.each(vehicles, function(entity) track_entity('vehicles', entity) end)
 
-            table.each(game.surfaces, function(surface)
-                -- track all radars
-                local radars = surface.find_entities_filtered({name = 'radar'})
-                table.each(radars, function(entity) track_entity('radars', entity) end)
+        -- track all trains
+        local trains = surface.find_entities_filtered({type = 'locomotive'})
+        table.each(trains, function(entity) track_entity('trains', entity) end)
 
-                -- track all vehicles
-                local vehicles = surface.find_entities_filtered({type = 'car'})
-                table.each(vehicles, function(entity) track_entity('vehicles', entity) end)
+        -- track all big-electric-poles
+        local power_poles = surface.find_entities_filtered({name = 'big-electric-pole'})
+        table.each(power_poles, function(entity) track_entity('power_poles', entity) end)
+    end)
 
-                -- track all trains
-                local trains = surface.find_entities_filtered({type = 'locomotive'})
-                table.each(trains, function(entity) track_entity('trains', entity) end)
-
-                -- track all big-electric-poles
-                local power_poles = surface.find_entities_filtered({name = 'big-electric-pole'})
-                table.each(power_poles, function(entity) track_entity('power_poles', entity) end)
-            end)
-            global.map_scan_countdown = nil
-            global.scanned_map = true
-        end
-    end
-end)
-
--- Scan the map once if the mod never had blueprint radars added
-Event.register(defines.events.on_tick, function(event)
-    if not global.scanned_map_for_blueprints then
-        if not global.map_scan_blueprint_countdown then global.map_scan_blueprint_countdown = 20 end
-        global.map_scan_blueprint_countdown = global.map_scan_blueprint_countdown - 1
-        if global.map_scan_blueprint_countdown <= 0 then
-            Event.remove(defines.events.on_tick, event._handler)
-            -- upgrade radars
-            table.each(game.forces, upgrade_radars)
-
-            global.map_scan_blueprint_countdown = nil
-            global.scanned_map_for_blueprints = true
-        end
-    end
+    -- upgrade radars
+    table.each(game.forces, upgrade_radars)
 end)
 
 Event.register(defines.events.on_research_finished, function(event)
     local tech_name = event.research.name
     local force = event.research.force
     if tech_name:starts_with('radar-amplifier') or tech_name:starts_with('radar-efficiency') then
-        -- update radars in 1 tick
-        if not global.queued_updates then
-            global.queued_updates = {}
-        end
-        -- attempt to avoid upgrading radars more than once when a player decides to research all techs at once
-        if not global.queued_updates[force.name] or global.queued_updates[force.name] ~= event.tick then
-            global.queued_updates[force.name] = event.tick
-            Event.register(defines.events.on_tick, function(event)
-                upgrade_radars(force)
-                global.queued_updates[force.name] = nil
-                Event.remove(defines.events.on_tick, event._handler)
-            end)
-        end
+        Scheduler.add(force.name, function(event)
+            upgrade_radars(force)
+        end)
     elseif tech_name == 'surveillance-2' then
         if global.power_poles and global.surveillance_centers then
-            --force.technologies['surveillance-2'].researched = true
             update_all_surveillance(force)
         end
     end
@@ -195,7 +154,6 @@ function upgrade_radar_entity(radar)
     local health = radar.health
     local surface = radar.surface
     local radar_data = Entity.set_data(radar, nil)
-    LOGGER.log("Upgrading radar {" .. radar.name .. "} at " .. serpent.line(pos, {comment=false}))
     radar.destroy()
 
     if not radar_data then
@@ -206,7 +164,6 @@ function upgrade_radar_entity(radar)
     end
     local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
     new_radar.health = health
-    LOGGER.log("Setting blueprint data on radar {" .. new_radar.name .. ", unit_number: " .. new_radar.unit_number .. "}: " .. serpent.line(radar_data, {comment=false}))
     Entity.set_data(new_radar, radar_data)
 
     return new_radar
@@ -218,7 +175,6 @@ function upgrade_radars(force)
     local radar_efficiency_level = calculate_tech_level(force, 'radar-efficiency', 9)
     local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
     local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
-    LOGGER.log("Upgrading " .. force.name .. "'s radars to " .. radar_name)
     for i = #global.radars, 1, -1 do
         local radar = global.radars[i]
         if not radar.valid then
@@ -229,7 +185,6 @@ function upgrade_radars(force)
             local health = radar.health
             local surface = radar.surface
             local radar_data = Entity.set_data(radar, nil)
-            LOGGER.log("Upgrading radar {" .. radar.name .. "} at " .. serpent.line(pos, {comment=false}))
             radar.destroy()
 
             if not radar_data then
