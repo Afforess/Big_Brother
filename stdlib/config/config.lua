@@ -1,17 +1,24 @@
---- Config module
+--- For working with mod configurations.
 -- @module Config
+-- @usage require('stdlib/config/config')
 
-require 'stdlib/core'
-require 'stdlib/string'
-require 'stdlib/table'
+---
+-- @tfield function new
+-- @tfield function get
+-- @tfield function set
+-- @tfield function delete
+-- @tfield function is_set
+-- @table Config
+Config = {_module_name = "Config"} --luacheck: allow defined top
+setmetatable(Config, {__index = require("stdlib/core")})
 
 -----------------------------------------------------------------------
 --Setup repeated code for use in sub functions here
 -----------------------------------------------------------------------
 local reservedCharacters = '`~!@#$%^&*+=|;:/\\\'",?()[]{}<>'
 local testReservedCharacters = function(path)
-    local reservedCharacters = reservedCharacters
-    for c in reservedCharacters:gmatch('.') do
+    local reserved = reservedCharacters
+    for c in reserved:gmatch('.') do
         if path:find(c, 1, true) then
             return c
         end
@@ -19,43 +26,40 @@ local testReservedCharacters = function(path)
     return nil
 end
 
-Config = {}
-
---- Creates a new Config object
--- to ease the management of a config table.
--- @param config_table [required] The table to be managed.
--- @return the Config instance for managing config_table
+--- Creates a new Config object to ease the management of a config table.
+-- @tparam table config_table the config table to manage
+-- @treturn Config the Config object to manage the config table
 --
 -- @usage --[Use a global table for config that persists across game save/loads]
---CONFIG = Config.new(global.testtable)
+-- CONFIG = Config.new(global.testtable)
 --
 -- @usage --[You can also create a temporary scratch pad config]
---CONFIG = Config.new({}) -- Temporary scratch pad
+-- CONFIG = Config.new({}) -- Temporary scratch pad
 --
 -- @usage --[Setting data in Config]
---CONFIG = Config.new(global.testtable)
---CONFIG.set("your.path.here", "myvalue")
+-- CONFIG = Config.new(global.testtable)
+-- CONFIG.set("your.path.here", "myvalue")
 --
 -- @usage --[Getting data out of Config]
---CONFIG = Config.new(global.testtable)
---my_data = CONFIG.get("your.path.here")
+-- CONFIG = Config.new(global.testtable)
+-- my_data = CONFIG.get("your.path.here")
 --
 -- @usage --[Getting data out of Config with a default to use if path is not found in Config]
---CONFIG = Config.new(global.testtable)
---my_data = CONFIG.get("your.path.here", "Your Default here")
+-- CONFIG = Config.new(global.testtable)
+-- my_data = CONFIG.get("your.path.here", "Your Default here")
 --
 -- @usage --[Deleting a path from Config]
---CONFIG = Config.new(global.testtable)
---CONFIG.delete("your.path.here")
+-- CONFIG = Config.new(global.testtable)
+-- CONFIG.delete("your.path.here")
 --
 -- @usage --[Checking if a path exists in Config]
---CONFIG = Config.new(global.testtable)
---CONFIG.is_set("your.path.here")
+-- CONFIG = Config.new(global.testtable)
+-- CONFIG.is_set("your.path.here")
 function Config.new(config_table)
     if not config_table then
         error("config_table is a required parameter.", 2)
     elseif type(config_table) ~= "table" then
-        error("config_table must be a table. Was given [" .. type(options) .. "]", 2)
+        error("config_table must be a table. Was given [" .. type(config_table) .. "]", 2)
     elseif type(config_table.get) == "function" then
         error("Config can't manage another Config object", 2)
     end
@@ -66,9 +70,9 @@ function Config.new(config_table)
     local Config = {}
 
     --- Get a stored config value.
-    -- @param path [required] a string representing the variable to retrieve
-    -- @param default (optional) value to be used if path is nil
-    -- @return value at path or nil if not found and no default given
+    -- @tparam string path the variable to retrieve
+    -- @tparam[opt] Mixed default value to be used if path is nil
+    -- @treturn Mixed value at path or nil if not found and no default given
     function Config.get(path, default)
         if type(path) ~= "string" or path:is_empty() then error("path is invalid", 2) end
 
@@ -78,34 +82,34 @@ function Config.new(config_table)
         if c ~= nil then error("path '" .. path .. "' contains the reserved character '" .. c .. "'", 2) end
 
         local pathParts = path:split('.')
-        local part = config;
-        local value = nil;
+        local part = config
+        local value = nil
 
         for key = 1, #pathParts, 1 do
             local partKey = pathParts[key]
             if (type(part) ~= "table") then
-                value = nil;
-                break;
+                value = nil
+                break
             end
 
-            value = part[partKey];
-            part = part[partKey];
+            value = part[partKey]
+            part = part[partKey]
         end
 
         if (type(value) == "table") then
             --Force break references.
-            return table.deepcopy(value);
+            return table.deepcopy(value)
         elseif (value ~= nil) then
-            return value;
+            return value
         else
-            return default;
+            return default
         end
     end
 
     --- Set a stored config value.
-    -- @param path [required] a string, config path to set
-    -- @param data (optional) Value to set path to. If nil it behaves identical to Config.delete()
-    -- @return number 0 on failure; number of affected paths on success
+    -- @tparam string path the config path to set
+    -- @tparam ?|nil|Mixed data the value to set the path to. If *nil*, it behaves identical to @{delete|Config.delete()}
+    -- @treturn uint 0 on failure or the number of affected paths on success
     function Config.set(path, data)
         if type(path) ~= "string" or path:is_empty() then error("path is invalid", 2) end
 
@@ -115,27 +119,25 @@ function Config.new(config_table)
         if c ~= nil then error("path contains the reserved character '" .. c .. "'", 2) end
 
         local pathParts = path:split('.')
-        local part = config;
-        local value = nil;
+        local part = config
 
         for key = 1, #pathParts - 1, 1 do
             local partKey = pathParts[key]
             if (type(part[partKey]) ~= "table") then
-                part[partKey] = {};
+                part[partKey] = {}
             end
 
-            value = part[partKey];
-            part = part[partKey];
+            part = part[partKey]
         end
 
-        part[pathParts[#pathParts]] = data;
+        part[pathParts[#pathParts]] = data
 
-        return 1;
+        return 1
     end
 
     --- Delete a stored config value.
-    -- @param path a string, config path to delete
-    -- @return number 0 on failure; number of affected paths on success
+    -- @tparam string path the config path to delete
+    -- @treturn uint 0 on failure or the number of affected paths on success
     function Config.delete(path)
         if type(path) ~= "string" or path:is_empty() then error("path is invalid", 2) end
 
@@ -146,7 +148,6 @@ function Config.new(config_table)
 
         local pathParts = path:split('.')
         local part = config
-        local value = nil
 
         for key = 1, #pathParts - 1, 1 do
             local partKey = pathParts[key]
@@ -166,8 +167,8 @@ function Config.new(config_table)
     end
 
     --- Test the existence of a stored config value.
-    -- @param path a string, config path to test
-    -- @return boolean, true on success, false otherwise
+    -- @tparam string path the config path to test
+    -- @treturn boolean true if the value exists, false otherwise
     function Config.is_set(path)
         if type(path) ~= "string" or path:is_empty() then error("path is invalid", 2) end
 

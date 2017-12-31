@@ -1,62 +1,68 @@
---- Game module
+--- The game module.
 -- @module Game
+-- @usage local Game = require('stdlib/game')
 
-Game = {}
-Game.VALID_FILTER = function(v)
-    return v.valid
+Game = { --luacheck: allow defined top
+    _module_name = "Game",
+    VALID_FILTER = function(v)
+        return v and v.valid
+    end,
+}
+setmetatable(Game, {__index = require('stdlib/core')})
+
+--- Return a valid player object from event, index, string, or userdata
+-- @tparam string|number|LuaPlayer|event mixed
+-- @treturn LuaPlayer a valid player or nil
+function Game.get_player(mixed)
+    if type(mixed) == "table" then
+        if mixed.__self then
+            return mixed and mixed.valid and mixed
+        elseif mixed.player_index then
+            local player = game.players[mixed.player_index]
+            return player
+        end
+    elseif mixed then
+        local player = game.players[mixed]
+        return player
+    end
 end
 
---- Messages all players currently connected to the game
--- @param msg message to send to players
--- @param condition (optional) optional condition to be true for the player to be messaged
--- @return the number of players who received the message. Offline players are not counted as having received the message.
+--- Return a valid force object from event, string, or userdata
+-- @tparam string|LuaForce|event mixed
+-- @treturn LuaForce a valid force or nil
+function Game.get_force(mixed)
+    if type(mixed) == "table" then
+        if mixed.__self then
+            return mixed and mixed.valid and mixed
+        elseif mixed.force then
+            return Game.get_force(mixed.force)
+        end
+    elseif type(mixed) == "string" then
+        local force = game.forces[mixed]
+        return (force and force.valid) and force
+    end
+end
+
+--- Messages all players currently connected to the game.
+--> Offline players are not counted as having received the message.
+-- If no players exist msg is stored in the `global._print_queue` table.
+-- @tparam string msg the message to send to players
+-- @tparam[opt] ?|nil|boolean condition the condition to be true for a player to be messaged
+-- @treturn uint the number of players who received the message.
 function Game.print_all(msg, condition)
     local num = 0
-    for _, player in pairs(game.players) do
-        if player.valid then
+    if #game.players > 0 then
+        for _, player in pairs(game.players) do
             if condition == nil or select(2, pcall(condition, player)) then
                 player.print(msg)
-                if player.connected then
-                    num = num + 1
-                end
+                num = num + 1
             end
         end
-    end
-    return num
-end
-
---- Messages all players with the given force connected to the game
--- <b>Deprecated for Factorio 0.14+</b>, see force.print(msg) instead.
--- @param force (may be force name string, or force object) the players with the given force to message
--- @param msg message to send to players
--- @return the number of players who received the message
-function Game.print_force(force, msg)
-    local force_name
-    if type(force) == "string" then
-        force_name = force
+        return num
     else
-        force_name = force.name
+        global._print_queue = global._print_queue or {}
+        global._print_queue[#global._print_queue + 1] = msg
     end
-    return Game.print_all(msg, function(player)
-        return player.force.name == force_name
-    end)
-end
-
---- Messages all players with the given surface connected to the game
--- <b>Deprecated for Factorio 0.14+</b>, see surface.print(msg) instead.
--- @param surface the players with the given surface to message
--- @param msg message to send to players
--- @return the number of players who received the message
-function Game.print_surface(surface, msg)
-    local surface_name
-    if type(surface) == "string" then
-        surface_name = surface
-    else
-        surface_name = surface.name
-    end
-    return Game.print_all(msg, function(player)
-        return player.surface.name == surface_name
-    end)
 end
 
 return Game

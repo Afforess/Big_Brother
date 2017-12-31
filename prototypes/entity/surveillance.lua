@@ -7,6 +7,7 @@ data:extend({
         type = "radar",
         name = "big_brother-surveillance-center",
         icon = "__Big_Brother__/graphics/icons/surveillance.png",
+        icon_size = 32,
         flags = {"placeable-player", "player-creation"},
         minable = {hardness = 0.2, mining_time = 0.5, result = "big_brother-surveillance-center"},
         max_health = 400,
@@ -16,6 +17,10 @@ data:extend({
           {
             type = "fire",
             percent = 70
+          },
+          {
+            type = "impact",
+            percent = 30
           }
         },
         collision_box = {{-2.1, -2.1}, {2.1, 2.1}},
@@ -43,12 +48,14 @@ data:extend({
             line_length = 1,
             lines_per_file = 1,
             shift = {1.55, 0.9}
-        }
+        },
+        radius_minimap_visualisation_color = { r = 0.059, g = 0.092, b = 0.235, a = 0.275 }
     },
     {
         type = "radar",
         name = "big_brother-surveillance-small",
         icon = "__Big_Brother__/graphics/icons/surveillance.png",
+        icon_size = 32,
         order = 'd-f',
         max_health = 100,
         selectable_in_game = false,

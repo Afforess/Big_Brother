@@ -3,6 +3,7 @@ data:extend({
         type = "item",
         name = "big_brother-surveillance-center",
         icon = "__Big_Brother__/graphics/icons/surveillance.png",
+        icon_size = 32,
         flags = {"goes-to-main-inventory"},
         subgroup = "defensive-structure",
         order = "d[radar]-a[surveillance]",
@@ -12,8 +13,9 @@ data:extend({
     {
         type = "item",
         name = "big_brother-blueprint-radar",
-        localised_name = {"item-name.radar"},
+        localised_name = {"entity-name.radar"},
         icon = "__base__/graphics/icons/radar.png",
+        icon_size = 32,
         flags = {"goes-to-main-inventory"},
         subgroup = "defensive-structure",
         order = "d[radar]-a[surveillance]",

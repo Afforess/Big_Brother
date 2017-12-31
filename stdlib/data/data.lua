@@ -1,62 +1,111 @@
---- Data module
+--- Data
 -- @module Data
 
-require 'stdlib/core'
-require 'stdlib/string'
-require 'stdlib/table'
+local Data = {} --luacheck: allow defined top
+setmetatable(Data, {__index = require("stdlib/data/core")})
 
-Data = {}
+--- Returns a valid thing object reference. This is the main getter
+-- @tparam string|table thing The thing to use, if string the thing must be in data.raw[type], tables are not verified
+-- @tparam[opt] string type the thing type
+-- @tparam table opts Logging options to pass
+-- @treturn Entity
+function Data:new(thing, class, opts)
+    self.fail_if_missing(thing, "thing is required")
 
---- Selects all data values where the key matches the selector pattern.
--- The selector pattern is divided into groups. The pattern should have a colon character `:` to denote the selection for each group.
--- <br/>The first group is for the class of the data type (item, recipe, entity-type, etc)
--- <br/>The second group is for the name of the data element, and is optional. If missing, all elements matching prior groups are returned.
--- <p> For more granular selectors, see other modules, such as Recipe.select.
--- @usage Data.select('recipe') -- returns a table with all recipes
--- @usage Data.select('recipe:steel.*') -- returns a table with all recipes whose name matches 'steel.*'
--- @param pattern to search with
--- @return table containing the elements matching the selector pattern, or an empty table if there was no matches
-function Data.select(pattern)
-    fail_if_missing(pattern, "missing pattern argument")
+    local object = self.get_object(thing, class or thing.type)
 
-    local parts = string.split(pattern, ":")
-    local category_pattern = table.first(parts)
-    local results = {}
-    for category, values in pairs(data.raw) do
-        if string.match(category, category_pattern) then
-            local element_pattern = #parts > 1 and parts[2] or '.*'
-            -- escape the '-' in names
-            element_pattern = string.gsub(element_pattern, "%-", "%%-")
-            for element_name, element in pairs(values) do
-                if string.match(element_name, element_pattern) then
-                    table.insert(results, element)
-                end
-            end
-        end
+    if object then
+            return setmetatable(thing, Data._mt):extend(object.update_data):save_options(opts)
+    else
+        local msg = "Data: "..tostring(thing).." is malformed."
+        error(msg, 4)
     end
-    setmetatable(results, Data._select_metatable.new(results))
-    return results
+end
+Data:set_caller(Data.new)
+
+function Data.new_style(style)
+    data.raw["gui-style"].default[style.name] = style
 end
 
--- this metatable is set on recipes, to control access to ingredients and results
-Data._select_metatable = {}
-Data._select_metatable.new = function(selection)
-    local self = { }
-    self.__index = function(tbl, key)
-        if key == 'apply' then
-            return function(k, v)
-                table.each(tbl, function(obj)
-                    obj[k] = v
-                end)
-                return tbl
-            end
+function Data.disable_control(control)
+    if data.raw["custom-input"] and data.raw["custom-input"][control] then
+        data.raw["custom-input"][control].enabled = false
+    end
+end
+
+function Data.new_sound(name, file)
+    Data.fail_if_missing(name)
+    Data.fail_if_missing(file)
+    return Data {
+        type = "sound",
+        name = name,
+        filename = file
+    }
+end
+
+--- Change subroup and/or order
+-- @tparam string data_type
+-- @tparam string name
+-- @tparam string subgroup
+-- @tparam string order
+function Data.subgroup_order(data_type, name, subgroup, order)
+    local data = data.raw[data_type] and data.raw[data_type][name]
+    if data then
+        data.subgroup = subgroup and #subgroup > 0 and subgroup or data.subgroup
+        data.order = order and #order > 0 and order or data.order
+    end
+end
+
+--- Replace an icon
+-- @tparam string data_type
+-- @tparam string name
+-- @tparam string icon
+-- @tparam int size
+function Data.replace_icon(data_type, name, icon, size)
+    local data = data.raw[data_type] and data.raw[data_type][name]
+    if data then
+        if type(icon) == "table" then
+            data.icons = icon
+            data.icon = nil
+        else
+            data.icon = icon
+            data.icon_size = size or data.icon_size
         end
     end
-    self.__newindex = function(tbl, key, value)
-        table.each(tbl, function(obj)
-            obj[key] = value
-        end)
-    end
-
-    return self
 end
+
+--- Get the icons
+-- @tparam string data_type
+-- @tparam string name
+-- @tparam boolean copy
+function Data.get_icons(data_type, name, copy)
+    local data = data.raw[data_type] and data.raw[data_type][name]
+    return data and copy and table.deepcopy(data.icons) or data and data.icons
+end
+
+function Data.get_icon(data_type, name)
+    local data = data.raw[data_type] and data.raw[data_type][name]
+    return data and data.icon
+end
+
+Data._mt = {
+    type = "data",
+    __index = Data,
+    __call = Data.get,
+    __tostring = Data.tostring
+}
+
+return Data
+-- render layers
+-- "tile-transition", "resource", "decorative", "remnants", "floor", "transport-belt-endings", "corpse",
+-- "floor-mechanics", "item", "lower-object", "object", "higher-object-above", "higher-object-under",
+-- "wires", "lower-radius-visualization", "radius-visualization", "entity-info-icon", "explosion",
+-- "projectile", "smoke", "air-object", "air-entity-info-con", "light-effect", "selection-box", "arrow", "cursor"
+
+-- collision masks
+-- "ground-tile", "water-tile", "resource-layer", "floor-layer", "item-layer",
+-- "object-layer", "player-layer", "ghost-layer", "doodad-layer", "not-colliding-with-itself"
+
+--Data.add_fields(Data, require('stdlib/data/developer/developer'))
+--Data.add_fields(Data, require('stdlib/data/modules/data_select'))
+--Data.Recipe = {select = require('stdlib/data/modules/recipe_select')}

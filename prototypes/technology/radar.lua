@@ -60,7 +60,7 @@ data:extend(
         effects = { },
         prerequisites = {"radar-amplifier-3", "modules"},
         unit = {
-            count = 80,
+            count = 90,
             ingredients = {
                 {"science-pack-1", 2},
                 {"science-pack-2", 1},
@@ -97,7 +97,7 @@ data:extend(
         effects = { },
         prerequisites = {"productivity-module-2", "radar-amplifier-5"},
         unit = {
-            count = 75,
+            count = 80,
             ingredients = {
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},
@@ -193,7 +193,7 @@ data:extend(
         effects = { },
         prerequisites = {"radar-efficiency"},
         unit = {
-            count = 30,
+            count = 35,
             ingredients = {
                 {"science-pack-1", 2},
                 {"science-pack-2", 1},
@@ -211,7 +211,7 @@ data:extend(
         effects = { },
         prerequisites = {"radar-efficiency-2", "advanced-electronics"},
         unit = {
-            count = 100,
+            count = 90,
             ingredients = {
                 {"science-pack-1", 2},
                 {"science-pack-2", 1},
@@ -229,7 +229,7 @@ data:extend(
         effects = { },
         prerequisites = {"radar-efficiency-3", "laser"},
         unit = {
-            count = 75,
+            count = 80,
             ingredients = {
                 {"science-pack-1", 4},
                 {"science-pack-2", 2},
@@ -266,7 +266,7 @@ data:extend(
         effects = { },
         prerequisites = {"radar-efficiency-5", "effectivity-module-2"},
         unit = {
-            count = 75,
+            count = 70,
             ingredients = {
                 {"science-pack-1", 4},
                 {"science-pack-2", 3},

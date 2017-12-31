@@ -1,9 +1,10 @@
-require 'stdlib/string'
-require 'stdlib/surface'
-require 'stdlib/table'
-require 'stdlib/event/event'
+require 'stdlib/game'
 require 'stdlib/area/position'
+require 'stdlib/area/surface'
 require 'stdlib/entity/entity'
+require 'stdlib/event/event'
+require 'stdlib/utils/string'
+require 'stdlib/utils/table'
 require 'scheduler'
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
@@ -35,10 +36,11 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     end
 end)
 
-Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined, defines.events.on_preplayer_mined_item}, function(event)
+Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined, defines.events.on_player_mined_entity}, function(event)
     local entity = event.entity
     local type = entity.type
     local name = entity.name
+    game.print("entity name " .. name .. ", type: " .. type .. " mined")
     if name == 'big-electric-pole' then
         if entity.force.technologies['surveillance-2'].researched then
             remove_surveillance(entity, false)
@@ -54,6 +56,7 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
         end)
     elseif type == 'radar' then
         local radar_data = Entity.set_data(entity, nil)
+        game.print("radar mined, entity data: " .. serpent.block(radar_data))
         if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
             radar_data.blueprint_radar.destroy()
         end

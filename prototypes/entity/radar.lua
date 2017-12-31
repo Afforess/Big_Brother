@@ -18,22 +18,6 @@ for radar_amplification_type = 0, 9 do
         radar.order ="d-c"
         radar.localised_name = {"entity-name.radar"}
 
-        local file_names = {}
-        for i = 1, 64 do
-            table.insert(file_names, "__Big_Brother__/graphics/entity/radar/tile_" .. i .. ".png")
-        end
-        radar.pictures = {
-            apply_projection = false,
-            direction_count = #file_names,
-            filenames = file_names,
-            height = 262,
-            line_length = 1,
-            lines_per_file = 1,
-            priority = "medium",
-            scale = 0.5,
-            shift = {0.875, -0.34375},
-            width = 306,
-        }
         table.insert(radars, radar)
     end
 end
@@ -50,8 +34,17 @@ radar.energy_per_nearby_scan = "0kJ"
 radar.energy_usage = "1kW"
 radar.order ="d-c"
 radar.localised_name = {"entity-name.radar"}
-radar.pictures.priority = "low"
-radar.pictures.height = 0
-radar.pictures.width = 0
+radar.pictures = {
+    filename = "__base__/graphics/entity/radar/radar.png",
+    priority = "low",
+    width = 0,
+    height = 0,
+    apply_projection = false,
+    direction_count = 1,
+    line_length = 1,
+    shift = {0.0, 0.0}
+}
+radar.integration_patch = nil
+radar.radius_minimap_visualisation_color = nil
 
 data:extend({radar})
