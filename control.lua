@@ -8,6 +8,7 @@ require 'scheduler'
 
 Event.register({defines.events.on_built_entity, defines.events.on_robot_built_entity}, function(event)
     local entity = event.created_entity
+    local type = entity.type
     local name = entity.name
     if name == 'radar' then
         track_entity('radars', upgrade_radar_entity(entity))
@@ -16,19 +17,19 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
         if entity.force.technologies['surveillance-2'].researched then
             update_surveillance(entity, false)
         end
-    elseif entity.type == 'car' then
+    elseif type == 'car' then
         track_entity('vehicles', entity)
         update_surveillance(entity, true)
-    elseif entity.type == 'locomotive' then
+    elseif type == 'locomotive' then
         track_entity('trains', entity)
         update_surveillance(entity, true)
-    elseif entity.name == 'big_brother-surveillance-center' then
+    elseif name == 'big_brother-surveillance-center' then
         entity.backer_name = ''
         track_entity('surveillance_centers', entity)
         update_all_surveillance(entity.force)
-    elseif entity.type == 'entity-ghost' then
+    elseif type == 'entity-ghost' then
         if entity.ghost_name == 'big_brother-blueprint-radar' then
-            entity.surface.create_entity({name = entity.name, position = entity.position, force = entity.force, inner_name = 'radar'})
+            entity.surface.create_entity({name = name, position = entity.position, force = entity.force, inner_name = 'radar'})
             entity.destroy()
         end
     end
@@ -36,21 +37,22 @@ end)
 
 Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined, defines.events.on_preplayer_mined_item}, function(event)
     local entity = event.entity
+    local type = entity.type
     local name = entity.name
     if name == 'big-electric-pole' then
         if entity.force.technologies['surveillance-2'].researched then
             remove_surveillance(entity, false)
         end
-    elseif entity.type == 'car' then
+    elseif type == 'car' then
         remove_surveillance(entity, true)
-    elseif entity.type == 'locomotive' then
+    elseif type == 'locomotive' then
         remove_surveillance(entity, true)
-    elseif entity.name == 'big_brother-surveillance-center' then
+    elseif name == 'big_brother-surveillance-center' then
         local force = entity.force
         Scheduler.add(nil, function(event)
             update_all_surveillance(force)
         end)
-    elseif entity.type == 'radar' then
+    elseif type == 'radar' then
         local radar_data = Entity.set_data(entity, nil)
         if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
             radar_data.blueprint_radar.destroy()
@@ -142,12 +144,12 @@ function chart_locomotive(entity)
     entity.force.chart(entity.surface, Area.normalize({Position.construct(x, y), pos}))
 end
 
-function upgrade_radar_entity(radar)
+function upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
     if not radar.valid then return nil end
 
     local force = radar.force
-    local radar_efficiency_level = calculate_tech_level(force, 'radar-efficiency', 9)
-    local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
+    local radar_efficiency_level = radar_efficiency_level or calculate_tech_level(force, 'radar-efficiency', 9)
+    local radar_amplifier_level = radar_amplifier_level or calculate_tech_level(force, 'radar-amplifier', 9)
     local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
     local pos = radar.position
     local direction = radar.direction
@@ -180,36 +182,20 @@ function upgrade_radars(force)
         if not radar.valid then
             table.remove(global.radars, i)
         elseif radar.force == force then
-            local pos = radar.position
-            local direction = radar.direction
-            local health = radar.health
-            local surface = radar.surface
-            local radar_data = Entity.set_data(radar, nil)
-            radar.destroy()
-
-            if not radar_data then
-                local blueprint_radar = surface.create_entity({ name = 'big_brother-blueprint-radar', position = pos, direction = direction, force = force})
-                Entity.set_frozen(blueprint_radar)
-                Entity.set_indestructible(blueprint_radar)
-                radar_data = { blueprint_radar = blueprint_radar }
-            end
-            local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
-            new_radar.health = health
-            Entity.set_data(new_radar, radar_data)
-
-            global.radars[i] = new_radar
+            global.radars[i] = upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
         end
     end
 end
 
 function calculate_tech_level(force, tech_name, max_levels)
+    local techs = force.technologies
     for i = max_levels, 1, -1 do
         local full_tech_name = tech_name
         if i > 1 then
             full_tech_name = tech_name .. '-' .. i
         end
 
-        if force.technologies[full_tech_name].researched then
+        if techs[full_tech_name].researched then
             return i
         end
     end
