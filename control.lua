@@ -37,20 +37,23 @@ end)
 Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined, defines.events.on_preplayer_mined_item}, function(event)
     local entity = event.entity
     local name = entity.name
+    local type = entity.type
     if name == 'big-electric-pole' then
         if entity.force.technologies['surveillance-2'].researched then
             remove_surveillance(entity, false)
         end
-    elseif entity.type == 'car' then
+    elseif type == 'car' then
         remove_surveillance(entity, true)
-    elseif entity.type == 'locomotive' then
+    elseif type == 'locomotive' then
         remove_surveillance(entity, true)
-    elseif entity.name == 'big_brother-surveillance-center' then
+    elseif name == 'big_brother-surveillance-center' then
         local force = entity.force
         Scheduler.add(nil, function(event)
             update_all_surveillance(force)
         end)
-    elseif entity.type == 'radar' then
+    elseif name == 'big_brother-deconstruction-radar' then
+        game.players[1].print(name)
+    elseif type == 'radar' then
         local radar_data = Entity.set_data(entity, nil)
         if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
             radar_data.blueprint_radar.destroy()
@@ -142,12 +145,12 @@ function chart_locomotive(entity)
     entity.force.chart(entity.surface, Area.normalize({Position.construct(x, y), pos}))
 end
 
-function upgrade_radar_entity(radar)
+function upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
     if not radar.valid then return nil end
 
     local force = radar.force
-    local radar_efficiency_level = calculate_tech_level(force, 'radar-efficiency', 9)
-    local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
+    local radar_efficiency_level = radar_efficiency_level or calculate_tech_level(force, 'radar-efficiency', 9)
+    local radar_amplifier_level = radar_amplifier_level or calculate_tech_level(force, 'radar-amplifier', 9)
     local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
     local pos = radar.position
     local direction = radar.direction
@@ -162,10 +165,17 @@ function upgrade_radar_entity(radar)
         Entity.set_indestructible(blueprint_radar)
         radar_data = { blueprint_radar = blueprint_radar }
     end
+    --
+    -- if not radar_data.deconstruct_radar then
+    --     local deconstruct_radar = surface.create_entity({ name = 'big_brother-deconstruction-radar', position = pos, direction = direction, force = force})
+    --     Entity.set_frozen(deconstruct_radar)
+    --     Entity.set_indestructible(deconstruct_radar)
+    --     radar_data.deconstruct_radar = deconstruct_radar
+    -- end
+
     local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
     new_radar.health = health
     Entity.set_data(new_radar, radar_data)
-
     return new_radar
 end
 
@@ -180,24 +190,7 @@ function upgrade_radars(force)
         if not radar.valid then
             table.remove(global.radars, i)
         elseif radar.force == force then
-            local pos = radar.position
-            local direction = radar.direction
-            local health = radar.health
-            local surface = radar.surface
-            local radar_data = Entity.set_data(radar, nil)
-            radar.destroy()
-
-            if not radar_data then
-                local blueprint_radar = surface.create_entity({ name = 'big_brother-blueprint-radar', position = pos, direction = direction, force = force})
-                Entity.set_frozen(blueprint_radar)
-                Entity.set_indestructible(blueprint_radar)
-                radar_data = { blueprint_radar = blueprint_radar }
-            end
-            local new_radar = surface.create_entity({ name = radar_name, position = pos, direction = direction, force = force})
-            new_radar.health = health
-            Entity.set_data(new_radar, radar_data)
-
-            global.radars[i] = new_radar
+            global.radars[i] = upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
         end
     end
 end

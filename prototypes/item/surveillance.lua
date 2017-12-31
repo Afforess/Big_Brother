@@ -12,7 +12,7 @@ data:extend({
     {
         type = "item",
         name = "big_brother-blueprint-radar",
-        localised_name = {"item-name.radar"},
+        localised_name = {"entity-name.radar"},
         icon = "__base__/graphics/icons/radar.png",
         flags = {"goes-to-main-inventory"},
         subgroup = "defensive-structure",

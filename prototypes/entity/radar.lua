@@ -53,5 +53,21 @@ radar.localised_name = {"entity-name.radar"}
 radar.pictures.priority = "low"
 radar.pictures.height = 0
 radar.pictures.width = 0
+data:extend({radar})
+--
+-- -- dummy item for deconstruction
+-- radar = table.deepcopy(data.raw['radar']['radar'])
+-- radar.name = 'big_brother-deconstruction-radar'
+-- radar.max_distance_of_sector_revealed = 0
+-- radar.max_distance_of_nearby_sector_revealed = 0
+-- radar.energy_per_sector = "0kJ"
+-- radar.energy_per_nearby_scan = "0kJ"
+-- radar.energy_usage = "1kW"
+-- radar.order ="d-c"
+-- radar.localised_name = {"entity-name.radar"}
+-- radar.pictures.priority = "low"
+-- radar.pictures.filenames = { "__Big_Brother__/graphics/entity/radar/invisible.png" }
+-- radar.pictures.direction_count = 1
+-- radar.collision_box = {{0, 0}, {0, 0}}
 
 data:extend({radar})
