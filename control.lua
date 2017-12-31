@@ -40,7 +40,6 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
     local entity = event.entity
     local type = entity.type
     local name = entity.name
-    game.print("entity name " .. name .. ", type: " .. type .. " mined")
     if name == 'big-electric-pole' then
         if entity.force.technologies['surveillance-2'].researched then
             remove_surveillance(entity, false)
@@ -56,12 +55,60 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
         end)
     elseif type == 'radar' then
         local radar_data = Entity.set_data(entity, nil)
-        game.print("radar mined, entity data: " .. serpent.block(radar_data))
         if radar_data and radar_data.blueprint_radar and radar_data.blueprint_radar.valid then
             radar_data.blueprint_radar.destroy()
         end
     end
 end)
+
+Event.register(defines.events.on_player_setup_blueprint, function(event)
+    local player = game.players[event.player_index]
+    if not player.valid then return end
+
+    local stack = player.cursor_stack
+    if not stack.valid or not stack.valid_for_read then return end
+    if stack.name ~= "blueprint" then return end
+
+    local entities = stack.get_blueprint_entities()
+    if not entities then return end
+
+    local modified = false
+    for _, entity in pairs(entities) do
+        if entity.name == 'big_brother-blueprint-radar' then
+            entity.name = 'radar'
+            modified = true
+        end
+    end
+
+    if modified then
+        stack.set_blueprint_entities(entities)
+    end
+end)
+
+Event.register(defines.events.on_player_configured_blueprint, function(event)
+    local player = game.players[event.player_index]
+    if not player.valid then return end
+
+    local stack = player.cursor_stack
+    if not stack.valid or not stack.valid_for_read then return end
+    if stack.name ~= "blueprint" then return end
+
+    local entities = stack.get_blueprint_entities()
+    if not entities then return end
+
+    local modified = false
+    for _, entity in pairs (entities) do
+        if entity.name == 'big_brother-blueprint-radar' then
+            entity.name = 'radar'
+            modified = true
+        end
+    end
+
+    if modified then
+        stack.set_blueprint_entities(entities)
+    end
+end)
+
 
 -- Scan the map once if the mod is updated
 Event.register({Event.core_events.init, Event.core_events.configuration_changed}, function(event)
