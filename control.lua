@@ -61,30 +61,6 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
     end
 end)
 
-Event.register(defines.events.on_player_setup_blueprint, function(event)
-    local player = game.players[event.player_index]
-    if not player.valid then return end
-
-    local stack = player.cursor_stack
-    if not stack.valid or not stack.valid_for_read then return end
-    if stack.name ~= "blueprint" then return end
-
-    local entities = stack.get_blueprint_entities()
-    if not entities then return end
-
-    local modified = false
-    for _, entity in pairs(entities) do
-        if entity.name == 'big_brother-blueprint-radar' then
-            entity.name = 'radar'
-            modified = true
-        end
-    end
-
-    if modified then
-        stack.set_blueprint_entities(entities)
-    end
-end)
-
 Event.register(defines.events.on_player_configured_blueprint, function(event)
     local player = game.players[event.player_index]
     if not player.valid then return end
@@ -108,7 +84,6 @@ Event.register(defines.events.on_player_configured_blueprint, function(event)
         stack.set_blueprint_entities(entities)
     end
 end)
-
 
 -- Scan the map once if the mod is updated
 Event.register({Event.core_events.init, Event.core_events.configuration_changed}, function(event)
