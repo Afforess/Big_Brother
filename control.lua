@@ -11,9 +11,9 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     local entity = event.created_entity
     local type = entity.type
     local name = entity.name
-    if name == 'radar' then
+    if type == 'radar' and name ~= 'big_brother-blueprint-radar' then
         track_entity('radars', upgrade_radar_entity(entity))
-    elseif name == 'big-electric-pole' then
+    elseif name:starts_with('big-electric-pole') then
         track_entity('power_poles', entity)
         if entity.force.technologies['surveillance-2'].researched then
             update_surveillance(entity, false)
@@ -40,7 +40,7 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
     local entity = event.entity
     local type = entity.type
     local name = entity.name
-    if name == 'big-electric-pole' then
+    if name:starts_with('big-electric-pole') then
         if entity.force.technologies['surveillance-2'].researched then
             remove_surveillance(entity, false)
         end
@@ -90,7 +90,8 @@ Event.register({Event.core_events.init, Event.core_events.configuration_changed}
     -- start tracking all important entities
     table.each(game.surfaces, function(surface)
         -- track all radars
-        local radars = surface.find_entities_filtered({name = 'radar'})
+        local radars = surface.find_entities_filtered({type = 'radar'})
+        radars = table.filter(radars, function(entity) return entity.name ~= 'big_brother-blueprint-radar' end)
         table.each(radars, function(entity) track_entity('radars', entity) end)
 
         -- track all vehicles
@@ -175,7 +176,7 @@ function upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_lev
     local force = radar.force
     local radar_efficiency_level = radar_efficiency_level or calculate_tech_level(force, 'radar-efficiency', 9)
     local radar_amplifier_level = radar_amplifier_level or calculate_tech_level(force, 'radar-amplifier', 9)
-    local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
+    local radar_name = 'big_brother-' .. radar.name .. '_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
     local pos = radar.position
     local direction = radar.direction
     local health = radar.health
@@ -201,7 +202,6 @@ function upgrade_radars(force)
 
     local radar_efficiency_level = calculate_tech_level(force, 'radar-efficiency', 9)
     local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
-    local radar_name = 'big_brother-radar_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
     for i = #global.radars, 1, -1 do
         local radar = global.radars[i]
         if not radar.valid then
