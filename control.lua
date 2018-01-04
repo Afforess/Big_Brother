@@ -61,12 +61,18 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
     end
 end)
 
-Event.register(defines.events.on_player_configured_blueprint, function(event)
+Event.register({defines.events.on_player_setup_blueprint, defines.events.on_player_configured_blueprint}, function(event)
     local player = game.players[event.player_index]
     if not player.valid then return end
 
-    local stack = player.cursor_stack
-    if not stack.valid or not stack.valid_for_read then return end
+    local stack = player.blueprint_to_setup
+    if not stack.valid or not stack.valid_for_read then
+        stack = player.cursor_stack
+        if not stack.valid or not stack.valid_for_read then
+            return
+        end
+    end
+
     if stack.name ~= "blueprint" then return end
 
     local entities = stack.get_blueprint_entities()
