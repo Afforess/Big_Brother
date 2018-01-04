@@ -11,7 +11,7 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     local entity = event.created_entity
     local type = entity.type
     local name = entity.name
-    if type == 'radar' and name ~= 'big_brother-blueprint-radar' then
+    if type == 'radar' and is_upgradable_radar(name) then
         track_entity('radars', upgrade_radar_entity(entity))
     elseif name:starts_with('big-electric-pole') then
         track_entity('power_poles', entity)
@@ -91,7 +91,8 @@ Event.register({Event.core_events.init, Event.core_events.configuration_changed}
     table.each(game.surfaces, function(surface)
         -- track all radars
         local radars = surface.find_entities_filtered({type = 'radar'})
-        radars = table.filter(radars, function(entity) return entity.name ~= 'big_brother-blueprint-radar' end)
+        -- filter out any big_brother radars
+        radars = table.filter(radars, function(entity) return is_upgradable_radar(entity.name) end)
         table.each(radars, function(entity) track_entity('radars', entity) end)
 
         -- track all vehicles
@@ -176,7 +177,12 @@ function upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_lev
     local force = radar.force
     local radar_efficiency_level = radar_efficiency_level or calculate_tech_level(force, 'radar-efficiency', 9)
     local radar_amplifier_level = radar_amplifier_level or calculate_tech_level(force, 'radar-amplifier', 9)
-    local radar_name = 'big_brother-' .. radar.name .. '_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
+    local original_name = radar.name
+    if original_name:starts_with('big_brother') then
+        original_name = original_name:sub(13, -11)
+    end
+    local radar_name = 'big_brother-' .. original_name .. '_ra-' .. radar_amplifier_level .. '_re-' .. radar_efficiency_level
+    if not game.entity_prototypes[radar_name] then return nil end
     local pos = radar.position
     local direction = radar.direction
     local health = radar.health
@@ -204,7 +210,7 @@ function upgrade_radars(force)
     local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
     for i = #global.radars, 1, -1 do
         local radar = global.radars[i]
-        if not radar.valid then
+        if not radar.valid or not is_upgradable_radar(radar.name) then
             table.remove(global.radars, i)
         elseif radar.force == force then
             global.radars[i] = upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
@@ -287,4 +293,20 @@ function track_entity(category, entity)
 
     table.insert(entity_list, entity)
     return true
+end
+
+function is_upgradable_radar(prototype_name)
+    if prototype_name == 'big_brother-blueprint-radar' then return false end
+    if prototype_name:starts_with('big_brother-surveillance') then return false end
+    game.print(prototype_name)
+    local radar_name = 'big_brother-' .. prototype_name .. '_ra-1_re-1'
+    if game.entity_prototypes[radar_name] then
+        return true
+    end
+    if prototype_name:starts_with('big_brother') then
+        game.print("Radar name: " .. prototype_name:sub(13, -11))
+        prototype_name = prototype_name:sub(13, -11)
+    end
+    radar_name = 'big_brother-' .. prototype_name .. '_ra-1_re-1'
+    return game.entity_prototypes[radar_name]
 end
