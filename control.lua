@@ -11,7 +11,7 @@ Event.register({defines.events.on_built_entity, defines.events.on_robot_built_en
     local entity = event.created_entity
     local type = entity.type
     local name = entity.name
-    if type == 'radar' and is_upgradable_radar(name) then
+    if type == 'radar' and is_upgradable_radar(entity.prototype) then
         track_entity('radars', upgrade_radar_entity(entity))
     elseif name:starts_with('big-electric-pole') then
         track_entity('power_poles', entity)
@@ -61,13 +61,17 @@ Event.register({defines.events.on_entity_died, defines.events.on_robot_pre_mined
     end
 end)
 
-Event.register(defines.events.on_player_configured_blueprint, function(event)
-    local player = game.players[event.player_index]
-    if not player.valid then return end
+Event.register({defines.events.on_player_setup_blueprint, defines.events.on_player_configured_blueprint}, function(event)
+     local player = game.players[event.player_index]
+     if not player.valid then return end
 
-    local stack = player.cursor_stack
-    if not stack.valid or not stack.valid_for_read then return end
-    if stack.name ~= "blueprint" then return end
+    local stack = player.blueprint_to_setup
+    if not stack.valid or not stack.valid_for_read then
+        stack = player.cursor_stack
+        if not stack.valid or not stack.valid_for_read then
+            return
+        end
+    end
 
     local entities = stack.get_blueprint_entities()
     if not entities then return end
@@ -92,7 +96,7 @@ Event.register({Event.core_events.init, Event.core_events.configuration_changed}
         -- track all radars
         local radars = surface.find_entities_filtered({type = 'radar'})
         -- filter out any big_brother radars
-        radars = table.filter(radars, function(entity) return is_upgradable_radar(entity.name) end)
+        radars = table.filter(radars, function(entity) return is_upgradable_radar(entity.prototype) end)
         table.each(radars, function(entity) track_entity('radars', entity) end)
 
         -- track all vehicles
@@ -210,7 +214,7 @@ function upgrade_radars(force)
     local radar_amplifier_level = calculate_tech_level(force, 'radar-amplifier', 9)
     for i = #global.radars, 1, -1 do
         local radar = global.radars[i]
-        if not radar.valid or not is_upgradable_radar(radar.name) then
+        if not radar.valid or not is_upgradable_radar(radar.prototype) then
             table.remove(global.radars, i)
         elseif radar.force == force then
             global.radars[i] = upgrade_radar_entity(radar, radar_efficiency_level, radar_amplifier_level)
@@ -295,18 +299,11 @@ function track_entity(category, entity)
     return true
 end
 
-function is_upgradable_radar(prototype_name)
-    if prototype_name == 'big_brother-blueprint-radar' then return false end
-    if prototype_name:starts_with('big_brother-surveillance') then return false end
-    game.print(prototype_name)
-    local radar_name = 'big_brother-' .. prototype_name .. '_ra-1_re-1'
-    if game.entity_prototypes[radar_name] then
-        return true
+function is_upgradable_radar(entity_prototype)
+    -- only big_brother radars with the order field set to "upgradable" are considered valid for upgrades
+    if entity_prototype.name:starts_with('big_brother') then
+        return entity_prototype.order == "upgradable"
     end
-    if prototype_name:starts_with('big_brother') then
-        game.print("Radar name: " .. prototype_name:sub(13, -11))
-        prototype_name = prototype_name:sub(13, -11)
-    end
-    radar_name = 'big_brother-' .. prototype_name .. '_ra-1_re-1'
-    return game.entity_prototypes[radar_name]
+    -- all base or "mod" radars are considered upgradable
+    return true
 end

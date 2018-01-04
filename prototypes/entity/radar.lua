@@ -1,13 +1,12 @@
 require('stdlib/utils/string')
 local radars = {}
 
-for radar_amplification_type = 0, 9 do
-    for radar_efficiency_type = 0, 9 do
-        -- update all radar prototypes (e.g radar-2 and radar-3 in bob's warfare, or any other radars)
-        for _, radar_prototype in pairs(data.raw['radar']) do
-            -- ignore big brother blueprint radar
-            if not radar_prototype.name:starts_with("big_brother") then
-
+-- update all radar prototypes (e.g radar-2 and radar-3 in bob's warfare, or any other radars)
+for _, radar_prototype in pairs(data.raw['radar']) do
+    -- ignore big brother blueprint radar
+    if not radar_prototype.name:starts_with("big_brother") then
+        for radar_amplification_type = 0, 9 do
+            for radar_efficiency_type = 0, 9 do
                 local max_distance_of_sector_revealed = radar_prototype.max_distance_of_sector_revealed + radar_amplification_type * 3
                 local max_distance_of_nearby_sector_revealed = radar_prototype.max_distance_of_nearby_sector_revealed + radar_amplification_type * 2
                 local extra_energy_cost = 75 * radar_amplification_type
@@ -21,7 +20,7 @@ for radar_amplification_type = 0, 9 do
                 radar.max_distance_of_nearby_sector_revealed = max_distance_of_nearby_sector_revealed
                 radar.energy_per_sector = energy_per_sector .. "kJ"
                 radar.energy_usage = (300 + extra_energy_cost) .. "kW"
-                radar.order ="d-c"
+                radar.order ="upgradable" -- HACK: I'm abusing this field to make control.lua code simpler
                 radar.localised_name = {"entity-name." .. radar_prototype.name}
 
                 table.insert(radars, radar)
