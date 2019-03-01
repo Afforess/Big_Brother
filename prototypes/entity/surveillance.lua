@@ -73,8 +73,8 @@ data:extend({
         {
             filename = "__base__/graphics/entity/radar/radar.png",
             priority = "low",
-            width = 0,
-            height = 0,
+            width = 1,
+            height = 1,
             apply_projection = false,
             direction_count = 1,
             line_length = 1,

@@ -1,10 +1,10 @@
 {
   "name": "Big_Brother",
-  "version": "{{VERSION}}",
+  "version": "0.4.7",
   "title": "Big Brother",
-  "author": "Afforess",
+  "author": "Afforess, pw_sys",
   "homepage": "http://afforess.com",
   "description": "Big Brother - Research radar upgrades in amplification, efficiency, and surveillance capabilities. Create the ultimate surveillance state.",
-  "factorio_version": "0.16",
+  "factorio_version": "0.17",
   "dependencies": ["base >= 0.16.13"]
 }
