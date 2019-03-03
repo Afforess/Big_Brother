@@ -1,10 +1,10 @@
 PACKAGE_NAME := Big_Brother
-VERSION_STRING := 0.4.6
+VERSION_STRING := 0.5.0
 
 OUTPUT_NAME := $(PACKAGE_NAME)_$(VERSION_STRING)
 OUTPUT_DIR := build/$(OUTPUT_NAME)
 
-PKG_COPY := $(wildcard *.md) graphics locale changelog.txt
+PKG_COPY := $(wildcard *.md) graphics locale changelog.txt thumbnail.png
 
 SED_FILES := $(shell find . -iname '*.json' -type f -not -path "./build/*") $(shell find . -iname '*.lua' -type f -not -path "./build/*")
 OUT_FILES := $(SED_FILES:%=$(OUTPUT_DIR)/%)
