@@ -6,6 +6,8 @@
 -- @see Concepts.Position
 -- @see defines.direction
 
+require 'stdlib/area/area'
+
 Position = {_module_name = "Position"} --luacheck: allow defined top
 setmetatable(Position, {__index = require('stdlib/core')})
 
@@ -175,7 +177,7 @@ end
 function Position.expand_to_area(pos, radius)
     pos = Position.new(pos)
     fail_if_missing(radius, 'missing radius argument')
-    local Area = require("stdlib/area/area")
+    local Area = package.loaded["stdlib/area/area"]
 
     local left_top = Position.new({pos.x - radius, pos.y - radius})
     local right_bottom = Position.new({pos.x + radius, pos.y + radius})
