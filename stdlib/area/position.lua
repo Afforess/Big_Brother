@@ -6,8 +6,6 @@
 -- @see Concepts.Position
 -- @see defines.direction
 
-require 'stdlib/area/area'
-
 Position = {_module_name = "Position"} --luacheck: allow defined top
 setmetatable(Position, {__index = require('stdlib/core')})
 
