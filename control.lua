@@ -1,4 +1,5 @@
 require 'stdlib/game'
+require 'stdlib/area/area'
 require 'stdlib/area/position'
 require 'stdlib/area/surface'
 require 'stdlib/entity/entity'
