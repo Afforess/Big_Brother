@@ -4,7 +4,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"military", "optics"},
         unit = {
@@ -20,7 +20,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-2",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"radar-amplifier"},
         unit = {
@@ -38,7 +38,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-3",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"radar-amplifier-2", "circuit-network"},
         unit = {
@@ -56,7 +56,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-4",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"radar-amplifier-3", "modules"},
         unit = {
@@ -74,7 +74,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-5",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"radar-amplifier-4"},
         unit = {
@@ -93,7 +93,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-6",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"productivity-module-2", "radar-amplifier-5"},
         unit = {
@@ -112,7 +112,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-7",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"effect-transmission", "radar-amplifier-6"},
         unit = {
@@ -132,7 +132,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-8",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"productivity-module-3", "radar-amplifier-7"},
         unit = {
@@ -152,7 +152,7 @@ data:extend(
         type = "technology",
         name = "radar-amplifier-9",
         icon = "__Big_Brother__/graphics/icons/radar-amplifier.png",
-        icon_size = 128,
+        icon_size = 256, icon_mipmaps = 0,
         effects = { },
         prerequisites = {"radar-amplifier-8"},
         unit = {
